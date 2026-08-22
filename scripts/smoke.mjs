@@ -12,6 +12,7 @@ import Copilot from '../lib/index.js'
 const home = mkdtempSync(join(tmpdir(), 'dsh-copilot-smoke-'))
 const ctx = new Context()
 const tools = []
+ctx.provide('systemPrompt', { section() {} })
 ctx.provide('tools', {
   register(tool) {
     tools.push(tool.name)

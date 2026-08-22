@@ -7,6 +7,7 @@ describe('dsh-oauth-copilot composition', () => {
   it('registers the github-copilot LLM route and the three login tools', async () => {
     const ctx = new Context()
     const tools: string[] = []
+    ctx.provide('systemPrompt', { section() {} })
     ctx.provide('tools', {
       register(tool: { name: string }) {
         tools.push(tool.name)

@@ -10,6 +10,9 @@ export interface LoginToolOptions {
 
 const LOGIN_METHOD = 'oauth'
 
+/** Tool names registered by this module in the current process (dedupe across loader double-apply). */
+const registeredTools = new Set<string>()
+
 function renderNotice(notice: AuthorizationNotice): string {
   let text = notice.message
   if (notice.url !== undefined) text += `\n  打开: ${notice.url}`
@@ -24,7 +27,12 @@ function answer(prompt: AuthorizationPrompt, enterpriseUrl: string): string {
   return ''
 }
 
-export function registerLoginTools(ctx: Context, options: LoginToolOptions): () => void {
+export function registerLoginTools(ctx: Context, options: LoginToolOptions): (() => void) | undefined {
+  // The dsh 0.1.1-rc.2 loader can apply this package twice in one tree (bundle
+  // entry + bundle-patch insert entry). Tool registration must be idempotent:
+  // the second apply skips tools the first already registered.
+  const names = ['github_copilot_login', 'github_copilot_status', 'github_copilot_logout'] as const
+  if (names.every(name => registeredTools.has(name))) return undefined
   const disposers: (() => void)[] = []
 
   const login = defineTool({
@@ -150,7 +158,10 @@ export function registerLoginTools(ctx: Context, options: LoginToolOptions): () 
   })
   disposers.push(ctx.tools.register(logout))
 
+  for (const name of names) registeredTools.add(name)
+
   return () => {
+    for (const name of names) registeredTools.delete(name)
     for (const dispose of disposers.splice(0)) dispose()
   }
 }
