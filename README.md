@@ -68,6 +68,14 @@ npm run build
 node scripts/smoke.mjs   # mounts the built plugin on real seams in a temp DSH_HOME
 ```
 
+## Compatibility note
+
+Login tools (`github_copilot_login` / `github_copilot_status` / `github_copilot_logout`) register
+only when the `authorization` service is mounted — dsh 0.1.1-rc.2's dsh-base does not mount it, so
+in that stock combination the plugin activates with the **github-copilot route only** (no login
+tools). The model route itself never depends on the authorization service; a missing service must
+not take the whole plugin tree down.
+
 ## License
 
 MIT

@@ -57,6 +57,13 @@ npm run build
 node scripts/smoke.mjs   # 在临时 DSH_HOME 中把构建产物挂到真实 seam 上冒烟
 ```
 
+## 兼容性注记
+
+登录工具（`github_copilot_login` / `github_copilot_status` / `github_copilot_logout`）仅当
+`authorization` 服务已挂载时注册——dsh 0.1.1-rc.2 的 dsh-base 默认不挂载该服务，因此在该
+默认组合下插件只以 **github-copilot 模型路由** 形态激活（无登录工具）。模型路由本身不依赖
+authorization 服务；服务缺失绝不能拖垮整个插件树。
+
 ## License
 
 MIT
