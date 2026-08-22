@@ -1,0 +1,3 @@
+- insert:
+    - id: llm-github-copilot
+      name: dsh-oauth-copilot
