@@ -53,6 +53,25 @@ function validateGrant(payload) {
   }
 }
 
+
+/** Fetch the account's actually-usable model ids (/models, policy = enabled). */
+async function fetchEnabledModels(access) {
+  const headers = {
+    Authorization: `Bearer ${access}`,
+    "User-Agent": "GitHubCopilotChat/0.35.0",
+    "Editor-Version": "vscode/1.107.0",
+    "Editor-Plugin-Version": "copilot-chat/0.35.0",
+    "Copilot-Integration-Id": "vscode-chat",
+  }
+  const res = await fetch("https://api.individual.githubcopilot.com/models", { headers, signal: AbortSignal.timeout(10000) })
+  if (!res.ok) throw new Error(`模型清单拉取失败: HTTP ${res.status}`)
+  const json = await res.json()
+  const data = Array.isArray(json.data) ? json.data : []
+  return data
+    .filter((m) => m && m.id && m.policy && m.policy.state === "enabled")
+    .map((m) => m.id)
+}
+
 function readDoc() {
   if (!exists() ) return { version: 1, refs: {}, records: {} }
   const raw = readFileSync(CRED_FILE, 'utf8')
@@ -147,6 +166,30 @@ async function cmdStatus() {
   console.log(`  可用模型: ${models.length > 0 ? models.join(', ') : '（等待模型清单）'}`)
 }
 
+
+async function cmdRefresh() {
+  const doc = readDoc()
+  const record = getRecord(doc)
+  if (record === undefined || record.kind !== "grant") {
+    console.log("GitHub Copilot 未登录，无需刷新。执行: node scripts/dsh-copilot-auth.mjs login")
+    return
+  }
+  if (!validateGrant(record.payload)) {
+    console.log("本地凭据记录未通过校验——请执行 logout 后重新 login。")
+    return
+  }
+  const enabled = await fetchEnabledModels(record.payload.access)
+  if (enabled.length === 0) {
+    console.log("未找到 policy=enabled 的模型（账号套餐可能无可用模型）。")
+    return
+  }
+  record.payload.availableModelIds = enabled
+  doc.records[RECORD_KEY] = record
+  writeDoc(doc)
+  console.log(`已更新可用模型清单: ${enabled.length} 个`)
+  console.log("  " + enabled.join(", "))
+}
+
 async function cmdLogout() {
   const doc = readDoc()
   if (getRecord(doc) === undefined) {
@@ -164,10 +207,11 @@ for (let i = 0; i < rest.length; i += 2) args[rest[i]] = rest[i + 1]
 
 try {
   if (cmd === 'login') await cmdLogin(args)
+  else if (cmd === 'refresh') await cmdRefresh()
   else if (cmd === 'status') await cmdStatus()
   else if (cmd === 'logout') await cmdLogout()
   else {
-    console.error('用法: dsh-copilot-auth.mjs <login|status|logout> [--enterprise-url <域>] [--timeout <ms>]')
+    console.error('用法: dsh-copilot-auth.mjs <login|status|refresh|logout> [--enterprise-url <域>] [--timeout <ms>]')
     process.exit(2)
   }
 } catch (error) {

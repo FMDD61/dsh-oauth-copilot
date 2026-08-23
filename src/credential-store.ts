@@ -47,7 +47,16 @@ function recordToPi(record: CredentialRecord | undefined): Credential | undefine
     console.warn('dsh-oauth-copilot: ignoring invalid/forged Copilot grant record')
     return undefined
   }
-  return record.payload as Credential
+  const payload = record.payload as Credential & { availableModelIds?: readonly string[] }
+  // An empty availableModelIds list means "unknown yet" (the login-time model
+  // fetch can time out), not "no models": pi-ai's filterModels applies an
+  // empty allow-list and would hide every model. Normalize to undefined so the
+  // model catalog stays fully available until a refresh repopulates the list.
+  if (Array.isArray(payload.availableModelIds) && payload.availableModelIds.length === 0) {
+    const { availableModelIds: _omitted, ...rest } = payload
+    return rest as Credential
+  }
+  return payload
 }
 
 function piToRecord(credential: Credential | undefined): CredentialRecord | undefined {

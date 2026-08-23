@@ -100,4 +100,16 @@ describe('GitHub Copilot grant validation (V3)', () => {
     const store = credentialStoreFrom({ credentials } as never)
     await expect(store.read()).resolves.toBeUndefined()
   })
+  it('normalizes an empty availableModelIds list (unknown, not none)', async () => {
+    const credentials = memoryCredentials()
+    credentials.records.set(GITHUB_COPILOT_RECORD_KEY, {
+      kind: 'grant',
+      payload: { ...grant, availableModelIds: [] as string[] },
+    })
+    const store = credentialStoreFrom({ credentials } as never)
+    const read = await store.read()
+    expect(read).toBeDefined()
+    expect(read?.availableModelIds).toBeUndefined()
+  })
 })
+

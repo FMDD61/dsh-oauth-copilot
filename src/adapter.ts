@@ -1,11 +1,41 @@
 import { githubCopilotProvider } from '@earendil-works/pi-ai/providers/github-copilot'
 import type { Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-attachment'
-import { resolveRetryPolicy } from '@deepseek-ai/dsh-llm'
+import { resolveRetryPolicy, type GenerateOptions, type StreamChunk } from '@deepseek-ai/dsh-llm'
 import { PiAiAdapter } from '@deepseek-ai/dsh-llm-pi-ai'
 import type { ResolvedPiAiProviderProfile } from '@deepseek-ai/dsh-llm-pi-ai'
 import { GITHUB_COPILOT_PROVIDER_ID } from './constants.js'
 import { authContextFrom, credentialStoreFrom } from './credential-store.js'
+
+/**
+ * pi-ai's github-copilot dynamic-header pass calls `msg.content.some(...)`,
+ * which throws on string content. Normalize every message to the array shape
+ * before the request reaches pi-ai.
+ */
+export function normalizeStringContent<T extends { content: unknown }>(messages: readonly T[]): T[] {
+  return messages.map((message) => {
+    if (typeof message.content === 'string') {
+      return {
+        ...message,
+        content: [{ type: 'text' as const, text: message.content }],
+      } as T
+    }
+    return message
+  })
+}
+
+/**
+ * PiAiAdapter that canonicalizes string message content to the block-array
+ * shape pi-ai's GitHub Copilot header handling requires.
+ */
+class NormalizedPiAiAdapter extends PiAiAdapter {
+  override stream(options: GenerateOptions): AsyncIterable<StreamChunk> {
+    return super.stream({
+      ...options,
+      messages: normalizeStringContent(options.messages),
+    })
+  }
+}
 
 /**
  * Register the github-copilot route backed by pi-ai's Copilot catalog. The
@@ -27,7 +57,7 @@ export function createGitHubCopilotAdapter(ctx: Context, streamIdleTimeoutMs: nu
     piProvider: githubCopilotProvider(),
   }
   const profiles = new Map<string, ResolvedPiAiProviderProfile>([[GITHUB_COPILOT_PROVIDER_ID, profile]])
-  return new PiAiAdapter({
+  return new NormalizedPiAiAdapter({
     profiles: () => profiles,
     resolveApiKey: async () => undefined,
     auth: {
