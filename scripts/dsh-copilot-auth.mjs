@@ -3,9 +3,9 @@
  * dsh-copilot-auth — MANUAL GitHub Copilot OAuth for DeepSeek Harness.
  *
  * The primary sign-in path: run by the human in a terminal, no LLM involved.
- *   node scripts/dsh-copilot-auth.mjs login [--enterprise-url <domain>]
- *   node scripts/dsh-copilot-auth.mjs status
- *   node scripts/dsh-copilot-auth.mjs logout
+ *   dsh-copilot-auth login [--enterprise-url <domain>]
+ *   dsh-copilot-auth status
+ *   dsh-copilot-auth logout
  *
  * Writes the grant into $DSH_HOME/.credentials.yaml under
  * records: llm-pi-ai/github-copilot (the same record the dsh-oauth-copilot
@@ -146,7 +146,7 @@ async function cmdStatus() {
   const doc = readDoc()
   const record = getRecord(doc)
   if (record === undefined || record.kind !== 'grant') {
-    console.log('GitHub Copilot 未登录。执行: node scripts/dsh-copilot-auth.mjs login')
+    console.log('GitHub Copilot 未登录。执行: dsh-copilot-auth login')
     return
   }
   if (!validateGrant(record.payload)) {
@@ -165,7 +165,7 @@ async function cmdRefresh() {
   const doc = readDoc()
   const record = getRecord(doc)
   if (record === undefined || record.kind !== "grant") {
-    console.log("GitHub Copilot 未登录，无需刷新。执行: node scripts/dsh-copilot-auth.mjs login")
+    console.log("GitHub Copilot 未登录，无需刷新。执行: dsh-copilot-auth login")
     return
   }
   if (!validateGrant(record.payload)) {
@@ -205,7 +205,7 @@ try {
   else if (cmd === 'status') await cmdStatus()
   else if (cmd === 'logout') await cmdLogout()
   else {
-    console.error('用法: dsh-copilot-auth.mjs <login|status|refresh|logout> [--enterprise-url <域>] [--timeout <ms>]')
+    console.error('用法: dsh-copilot-auth <login|status|refresh|logout> [--enterprise-url <域>] [--timeout <ms>]')
     process.exit(2)
   }
 } catch (error) {
