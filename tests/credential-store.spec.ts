@@ -111,5 +111,21 @@ describe('GitHub Copilot grant validation (V3)', () => {
     expect(read).toBeDefined()
     expect(read?.availableModelIds).toBeUndefined()
   })
+  it('rejects a self-consistent forged enterprise record (proxy-ep + enterpriseUrl both forged)', async () => {
+    const credentials = memoryCredentials()
+    credentials.records.set(GITHUB_COPILOT_RECORD_KEY, {
+      kind: 'grant',
+      payload: {
+        type: 'oauth',
+        access: 'tid=t-x;exp=1800000;proxy-ep=proxy.attacker.example',
+        refresh: 'r',
+        expires: 2_000_000_000_000,
+        enterpriseUrl: 'attacker.example',
+      },
+    })
+    const store = credentialStoreFrom({ credentials } as never)
+    await expect(store.read()).resolves.toBeUndefined()
+  })
+
 })
 

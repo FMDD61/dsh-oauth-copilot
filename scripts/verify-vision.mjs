@@ -30,6 +30,8 @@ if (!vision) {
   process.exit(1)
 }
 console.log('vision-exp 模态:', vision.inputModalities?.join('+') ?? '(未知)')
+const resolved = await ctx.llm.resolveModelInfo('opencode-go', 'deepseek-v4-flash-vision-exp')
+console.log('vision-exp 思考档:', JSON.stringify(resolved.reasoning?.efforts?.map(e=>e.id) ?? null))
 
 const assembler = new BlockAssembler()
 try {
@@ -37,14 +39,15 @@ try {
     provider: 'opencode-go',
     model: 'deepseek-v4-flash-vision-exp',
     messages: [{ role: 'user', content: [{ type: 'text', text: '请只回复：VISION-OK' }] }],
-    maxTokens: 16,
+    maxTokens: 64,
+    reasoningEffort: process.env.REASONING_EFFORT ?? 'high',
   })) assembler.push(chunk)
   let text = ''
   for (const b of assembler.blocks()) if (b.type === 'text') text += b.text
   const finish = assembler.finish
   console.log('finish:', finish?.kind ?? 'none', finish?.failure?.message ? JSON.stringify(String(finish.failure.message).slice(0, 200)) : '')
   console.log('reply:', JSON.stringify(text.slice(0, 200)))
-  console.log('VERIFY VISION:', text.includes('VISION-OK') || text.length > 0 ? 'PASS' : 'FAIL')
+  console.log('VERIFY VISION (' + (process.env.REASONING_EFFORT ?? 'high') + '):', text.includes('VISION-OK') || text.length > 0 ? 'PASS' : 'FAIL')
 } catch (e) {
   console.log('THROW:', String(e.message ?? e).slice(0, 300))
   console.log('VERIFY VISION: FAIL')

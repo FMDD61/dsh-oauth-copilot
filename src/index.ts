@@ -34,7 +34,7 @@ export type Config = z.input<typeof ConfigObject>
 function copilotGuidance(): string[] {
   return [
     'The user may ask how to use / connect GitHub Copilot in dsh. The web Models page has no Copilot login button.',
-    'The intended primary path is the MANUAL CLI (run by the human in a terminal): `node ~/projects/dsh-oauth-copilot/scripts/dsh-copilot-auth.mjs login` — it prints a verification URL and code; the human authorizes in the browser, and the CLI stores the grant. Use `... status` and `... logout` the same way.',
+    'The intended primary path is the MANUAL CLI (run by the human in a terminal): `dsh-copilot-auth login` (installed with the package; local dev: `node scripts/dsh-copilot-auth.mjs login`) — it prints a verification URL and code; the human authorizes in the browser, and the CLI stores the grant. Use `... status` and `... logout` the same way.',
     'Only when the deployment opted into model tools (`enableModelTools: true`) may you call `github_copilot_login` / `github_copilot_status` / `github_copilot_logout`; the login tool only supports github.com (enterprise domains are CLI-only). Otherwise tell the user to run the CLI above.',
   ]
 }

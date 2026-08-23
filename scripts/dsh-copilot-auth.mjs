@@ -41,13 +41,10 @@ function validateGrant(payload) {
   if (proxy === null) return false
   try {
     const host = new URL(`https://${proxy[1]}`).hostname
-    const enterprise = typeof payload.enterpriseUrl === 'string' && payload.enterpriseUrl.length > 0
-      ? payload.enterpriseUrl
-      : undefined
-    const ehost = enterprise === undefined ? undefined : new URL(`https://${enterprise}`).hostname
-    const allowed = new Set(['proxy.individual.githubcopilot.com'])
-    if (ehost !== undefined) allowed.add(`proxy.${ehost}`)
-    return allowed.has(host)
+    // Official endpoint only: `enterpriseUrl` lives inside the same record a
+    // forger controls, so it must not legitimize a host (self-consistent
+    // forgery). Enterprise sign-in is rejected by `login` accordingly.
+    return host === 'proxy.individual.githubcopilot.com'
   } catch {
     return false
   }
@@ -104,10 +101,7 @@ async function cmdLogin(args) {
     process.exit(1)
   }
   if (enterpriseUrl.length > 0) {
-    let host
-    try { host = new URL(enterpriseUrl.includes('://') ? enterpriseUrl : `https://${enterpriseUrl}`).hostname }
-    catch { throw new Error(`无效的企业域名: ${safeMessage(enterpriseUrl)}`) }
-    console.error(`⚠ 目标端点: https://${host}（GitHub Enterprise）。确认后继续；非官方域名有凭据窃取风险。`)
+    throw new Error('GitHub Enterprise 暂不支持：插件凭据白名单仅接受官方端点 proxy.individual.githubcopilot.com，企业域授权无法被 dsh 路由使用（安全优先）。')
   }
 
   const oauth = githubCopilotProvider().auth.oauth

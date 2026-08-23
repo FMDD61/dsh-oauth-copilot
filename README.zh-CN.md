@@ -15,7 +15,7 @@
 ```sh
 cd ~/projects/dsh-oauth-copilot
 npm run build
-dsh plugin --profile web add /home/fmdd61/projects/dsh-oauth-copilot
+dsh plugin --profile web add dsh-oauth-copilot   # npm 发布后；本地开发: add <仓库路径>
 ```
 
 重启 `dsh web` 生效（插件的 `cordis.patch.yml` 经 `dsh.bundle.patch` 自动加载，id `llm-github-copilot`）。
@@ -26,9 +26,9 @@ dsh plugin --profile web add /home/fmdd61/projects/dsh-oauth-copilot
 
 ```sh
 cd ~/projects/dsh-oauth-copilot
-node scripts/dsh-copilot-auth.mjs login     # 打印设备码 URL 与代码（终端醒目输出）
-node scripts/dsh-copilot-auth.mjs status    # grant 过期时间与可用模型
-node scripts/dsh-copilot-auth.mjs logout    # 移除本地 grant
+dsh-copilot-auth login     # 打印设备码 URL 与代码（终端醒目输出）
+dsh-copilot-auth status    # grant 过期时间与可用模型
+dsh-copilot-auth logout    # 移除本地 grant
 ```
 
 `login` 支持 `--enterprise-url <域>`（GitHub Enterprise；开始前会醒目提示目标主机）与 `--timeout <ms>`（默认 180000）。命令绝不回显密钥；provider 错误先脱敏；凭据文件以 0600 原子写落盘。

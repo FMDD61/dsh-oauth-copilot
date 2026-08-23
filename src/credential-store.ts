@@ -18,21 +18,17 @@ function validatePiCredential(value: unknown): value is Credential {
   if (typeof cred.refresh !== 'string' || cred.refresh.length === 0) return false
   if (typeof cred.expires !== 'number') return false
   if (cred.availableModelIds !== undefined && !Array.isArray(cred.availableModelIds)) return false
-  // proxy-ep host must be the official endpoint or the record's own
-  // enterprise domain — never an arbitrary host.
+  // proxy-ep must be the official endpoint ONLY. Previously the record's own
+  // `enterpriseUrl` was accepted as an alternaive host, but a forger controls
+  // that field too (self-consistent forgery): an attacker could write
+  // proxy-ep=proxy.attacker.example + enterpriseUrl=attacker.example and pass.
+  // Model tooling already refuses enterprise hosts; enterprise sign-in is a
+  // CLI-only, user-explicitly-confirmed path whose grants this plugin ignores.
   const proxyMatch = /(?:^|;)proxy-ep=([^;]+)/.exec(cred.access)
   if (proxyMatch === null) return false
   try {
     const host = new URL(`https://${proxyMatch[1]}`).hostname
-    const enterprise = typeof cred.enterpriseUrl === 'string' && cred.enterpriseUrl.length > 0
-      ? cred.enterpriseUrl
-      : undefined
-    const enterpriseHost = enterprise === undefined ? undefined : new URL(`https://${enterprise}`).hostname
-    const enterpriseProxyHost = enterpriseHost === undefined ? undefined : `proxy.${enterpriseHost}`
-    const allowed = new Set<string>()
-    allowed.add('proxy.individual.githubcopilot.com')
-    if (enterpriseProxyHost !== undefined) allowed.add(enterpriseProxyHost)
-    if (!allowed.has(host)) return false
+    if (host !== 'proxy.individual.githubcopilot.com') return false
   } catch {
     return false
   }
