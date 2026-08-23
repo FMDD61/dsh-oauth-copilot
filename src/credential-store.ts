@@ -18,12 +18,20 @@ function validatePiCredential(value: unknown): value is Credential {
   if (typeof cred.refresh !== 'string' || cred.refresh.length === 0) return false
   if (typeof cred.expires !== 'number') return false
   if (cred.availableModelIds !== undefined && !Array.isArray(cred.availableModelIds)) return false
+  // enterpriseUrl MUST be absent (or empty): even with an official proxy-ep,
+  // pi-ai derives the REFRESH endpoint from credential.enterpriseUrl
+  // (github-copilot.js refreshGitHubCopilotAccessToken ->
+  // https://api.<domain>/copilot_internal/v2/token, Authorization: Bearer
+  // <refresh>), so a forged record combining proxy-ep=official,
+  // enterpriseUrl=attacker domain, an expired access, and a victim's refresh
+  // token would exfiltrate the refresh token to the attacker on the first
+  // request. Legitimate grants from this plugin never carry enterpriseUrl
+  // (enterprise sign-in is rejected at the CLI and the model tool).
+  if (cred.enterpriseUrl !== undefined && cred.enterpriseUrl !== '') return false
   // proxy-ep must be the official endpoint ONLY. Previously the record's own
   // `enterpriseUrl` was accepted as an alternaive host, but a forger controls
   // that field too (self-consistent forgery): an attacker could write
   // proxy-ep=proxy.attacker.example + enterpriseUrl=attacker.example and pass.
-  // Model tooling already refuses enterprise hosts; enterprise sign-in is a
-  // CLI-only, user-explicitly-confirmed path whose grants this plugin ignores.
   const proxyMatch = /(?:^|;)proxy-ep=([^;]+)/.exec(cred.access)
   if (proxyMatch === null) return false
   try {

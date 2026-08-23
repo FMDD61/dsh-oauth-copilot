@@ -34,8 +34,9 @@ export type Config = z.input<typeof ConfigObject>
 function copilotGuidance(): string[] {
   return [
     'The user may ask how to use / connect GitHub Copilot in dsh. The web Models page has no Copilot login button.',
-    'The intended primary path is the MANUAL CLI (run by the human in a terminal): `dsh-copilot-auth login` (installed with the package; local dev: `node scripts/dsh-copilot-auth.mjs login`) — it prints a verification URL and code; the human authorizes in the browser, and the CLI stores the grant. Use `... status` and `... logout` the same way.',
-    'Only when the deployment opted into model tools (`enableModelTools: true`) may you call `github_copilot_login` / `github_copilot_status` / `github_copilot_logout`; the login tool only supports github.com (enterprise domains are CLI-only). Otherwise tell the user to run the CLI above.',
+    'The intended primary path is the MANUAL CLI (run by the human in a terminal): `npx -y dsh-oauth-copilot login` (or `dsh-copilot-auth login` when installed globally) — it prints a verification URL and code; the human authorizes in the browser, and the CLI stores the grant. Use `... status` and `... logout` the same way. Only github.com is supported; GitHub Enterprise is not.',
+    'Only when the deployment opted into model tools (`enableModelTools: true`) may you call `github_copilot_login` / `github_copilot_status` / `github_copilot_logout`; the login tool only supports github.com. Otherwise tell the user to run the CLI above.',
+    'The model picker lists advisory catalog models: some may not be enabled for the account and return HTTP 400. If the user hits that, run `npx -y dsh-oauth-copilot refresh` to store the account-enabled model list, or pick one of the confirmed models in `github_copilot_status` output.',
   ]
 }
 

@@ -37,6 +37,11 @@ function validateGrant(payload) {
   if (typeof payload.access !== 'string' || payload.access.length === 0) return false
   if (typeof payload.refresh !== 'string' || payload.refresh.length === 0) return false
   if (typeof payload.expires !== 'number') return false
+  if (payload.availableModelIds !== undefined && !Array.isArray(payload.availableModelIds)) return false
+  // enterpriseUrl must be absent: pi-ai sends the REFRESH token to
+  // https://api.<enterpriseUrl>/..., so even an official proxy-ep would let a
+  // forged record exfiltrate the refresh token. Same rule as the plugin.
+  if (payload.enterpriseUrl !== undefined && payload.enterpriseUrl !== '') return false
   const proxy = /(?:^|;)proxy-ep=([^;]+)/.exec(payload.access)
   if (proxy === null) return false
   try {
@@ -109,7 +114,9 @@ async function cmdLogin(args) {
 
   const signal = AbortSignal.timeout(timeoutMs)
   process.on('SIGINT', () => signal.dispatchEvent(new Event('abort')))
-  const credential = await oauth.login({
+  let credential
+  try {
+    credential = await oauth.login({
     signal,
     prompt: async (p) => {
       if (p.type === 'select') return p.options[0]?.id ?? ''
@@ -130,6 +137,13 @@ async function cmdLogin(args) {
       }
     },
   })
+  } catch (error) {
+    const name = error?.name ?? error?.constructor?.name ?? ''
+    if (name === 'AbortError' || name === 'TimeoutError' || (error?.code ?? '') === 'ETIMEDOUT') {
+      throw new Error('已等待 ' + Math.round(timeoutMs / 1000) + ' 秒未完成授权，已取消。可重试或加大 --timeout（毫秒）。')
+    }
+    throw error
+  }
 
   if (!validateGrant(credential)) {
     throw new Error('登录成功但凭据未通过本地校验——已丢弃，请勿使用（可能是异常端点）')
@@ -146,12 +160,12 @@ async function cmdStatus() {
   const doc = readDoc()
   const record = getRecord(doc)
   if (record === undefined || record.kind !== 'grant') {
-    console.log('GitHub Copilot 未登录。执行: dsh-copilot-auth login')
-    return
+    console.error('未登录。可运行: dsh-copilot-auth login')
+    process.exit(1)
   }
   if (!validateGrant(record.payload)) {
-    console.log('本地凭据记录未通过校验（可能被篡改）——请执行 logout 后重新 login。')
-    return
+    console.error('本地凭据记录未通过校验（可能被篡改）——请执行 logout 后重新 login。')
+    process.exit(1)
   }
   const p = record.payload
   const models = Array.isArray(p.availableModelIds) ? p.availableModelIds : []
@@ -165,12 +179,12 @@ async function cmdRefresh() {
   const doc = readDoc()
   const record = getRecord(doc)
   if (record === undefined || record.kind !== "grant") {
-    console.log("GitHub Copilot 未登录，无需刷新。执行: dsh-copilot-auth login")
-    return
+    console.error("未登录，无需刷新。可运行: dsh-copilot-auth login")
+    process.exit(1)
   }
   if (!validateGrant(record.payload)) {
-    console.log("本地凭据记录未通过校验——请执行 logout 后重新 login。")
-    return
+    console.error("本地凭据记录未通过校验——请执行 logout 后重新 login。")
+    process.exit(1)
   }
   const enabled = await fetchEnabledModels(record.payload.access)
   if (enabled.length === 0) {
@@ -205,7 +219,7 @@ try {
   else if (cmd === 'status') await cmdStatus()
   else if (cmd === 'logout') await cmdLogout()
   else {
-    console.error('用法: dsh-copilot-auth <login|status|refresh|logout> [--enterprise-url <域>] [--timeout <ms>]')
+    console.error('用法: dsh-copilot-auth <login|status|refresh|logout> [--timeout <ms>]（仅 github.com；企业域暂不支持）')
     process.exit(2)
   }
 } catch (error) {

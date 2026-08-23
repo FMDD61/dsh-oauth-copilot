@@ -33,10 +33,11 @@ function renderNotice(notice: AuthorizationNotice): string {
   return text
 }
 
-function answer(prompt: AuthorizationPrompt, enterpriseUrl: string): string {
+function answer(prompt: AuthorizationPrompt): string {
   if (prompt.kind === 'select') return prompt.options[0]?.id ?? ''
-  if (enterpriseUrl.length > 0) return enterpriseUrl
-  // GitHub Copilot asks for an optional GitHub Enterprise domain; empty means github.com.
+  // GitHub Copilot asks for an optional GitHub Enterprise domain; empty means
+  // github.com. Enterprise is not supported (security whitelist), so the
+  // prompt is always answered with the public endpoint.
   return ''
 }
 
@@ -54,24 +55,17 @@ export function registerLoginTools(ctx: Context, options: LoginToolOptions): (()
       'Start the GitHub Copilot OAuth sign-in (device code) and register the github-copilot model route.',
       'Run this when the user wants to use their GitHub Copilot subscription in dsh.',
       'The tool prints a verification URL and code; the user must open it and authorize.',
-      'Optionally pass enterpriseUrl for GitHub Enterprise (blank = github.com).',
+      'Only github.com is supported (GitHub Enterprise is not).',
     ].join(' '),
-    parameters: {
-      enterpriseUrl: { type: 'string', description: 'GitHub Enterprise domain or URL. Omit for github.com.' },
-    },
+    parameters: {},
     output: {
       schema: { type: 'string' },
       render: (_args: unknown, value: string) => [{ type: 'text' as const, text: value }],
     },
-    async execute(args, _exec) {
-      // V1 of the security review: never let the model point the device flow
-      // at an arbitrary enterprise host (device-code phishing / OAT theft).
-      // GitHub Enterprise sign-in is only available through the manual CLI
-      // (scripts/dsh-copilot-auth.mjs --enterprise-url <domain>).
-      const enterpriseUrl = typeof args.enterpriseUrl === 'string' ? args.enterpriseUrl.trim() : ''
-      if (enterpriseUrl.length > 0) {
-        return 'GitHub Enterprise 登录请使用人工 CLI：在终端执行 scripts/dsh-copilot-auth.mjs login --enterprise-url <域名>。模型工具仅支持 github.com。'
-      }
+    async execute(_args, _exec) {
+      // V1 of the security review: no enterprise host is ever accepted; the
+      // device flow stays on github.com. (refresh-token exfiltration bypass is
+      // also blocked at the credential-store validation layer.)
       const current = await ctx.credentials.describeRecord(GITHUB_COPILOT_RECORD_KEY)
       if (current?.configured === true) {
         return 'GitHub Copilot 已登录。如需重新登录，请先注销（github_copilot_logout）。'
@@ -87,7 +81,7 @@ export function registerLoginTools(ctx: Context, options: LoginToolOptions): (()
           notices.push(renderNotice(notice))
         },
         async prompt(prompt: AuthorizationPrompt): Promise<string> {
-          return answer(prompt, '')
+          return answer(prompt)
         },
       }
       let outcome: { status: 'authorized' | 'cancelled' } | 'timeout'

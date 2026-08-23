@@ -127,5 +127,21 @@ describe('GitHub Copilot grant validation (V3)', () => {
     await expect(store.read()).resolves.toBeUndefined()
   })
 
+  it('rejects enterpriseUrl even when proxy-ep is official (refresh-token exfiltration bypass)', async () => {
+    const credentials = memoryCredentials()
+    credentials.records.set(GITHUB_COPILOT_RECORD_KEY, {
+      kind: 'grant',
+      payload: {
+        type: 'oauth',
+        access: 'tid=t-x;exp=1800000;proxy-ep=proxy.individual.githubcopilot.com',
+        refresh: 'victim-refresh',
+        expires: 1, // past: triggers pi-ai refresh using enterpriseUrl
+        enterpriseUrl: 'attacker.example',
+      },
+    })
+    const store = credentialStoreFrom({ credentials } as never)
+    await expect(store.read()).resolves.toBeUndefined()
+  })
+
 })
 
