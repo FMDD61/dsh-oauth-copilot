@@ -20,9 +20,9 @@ flow is present.
 ## Install
 
 ```sh
-cd ~/projects/dsh-oauth-copilot
-npm run build
-dsh plugin --profile web add dsh-oauth-copilot   # npm 发布后；本地开发: add <仓库路径>
+npm install -g dsh-oauth-copilot
+# 或本地开发(仓库检出): npm run build && dsh plugin --profile web add <仓库路径>
+dsh plugin --profile web add dsh-oauth-copilot
 ```
 
 Restart `dsh web` once. The plugin's `cordis.patch.yml` (id `llm-github-copilot`) is loaded from the
@@ -35,8 +35,7 @@ Sign-in is a **human-only terminal operation**; no LLM involvement, so prompt-in
 non-official model cannot start or drop an authorization.
 
 ```sh
-cd ~/projects/dsh-oauth-copilot
-dsh-copilot-auth login                 # prints device-code URL + code
+dsh-copilot-auth login                 # prints device-code URL + code (installed bin; repo checkout: node scripts/dsh-copilot-auth.mjs login)
 dsh-copilot-auth status                # grant expiry + available models
 dsh-copilot-auth logout                # remove the local grant
 ```
@@ -97,6 +96,7 @@ npm test          # unit + composition + grant validation
 npm run build
 node scripts/smoke.mjs           # mounts the built plugin on real seams in a temp DSH_HOME
 node scripts/smoke-noauth.mjs    # verifies the tree still boots without the authorization service
+# (scripts/ ship with the repo, not the npm tarball: run them from a checkout)
 ```
 
 ## Compatibility note

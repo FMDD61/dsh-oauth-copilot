@@ -13,9 +13,9 @@
 ## 安装
 
 ```sh
-cd ~/projects/dsh-oauth-copilot
-npm run build
-dsh plugin --profile web add dsh-oauth-copilot   # npm 发布后；本地开发: add <仓库路径>
+npm install -g dsh-oauth-copilot
+# 或本地开发(仓库检出): npm run build && dsh plugin --profile web add <仓库路径>
+dsh plugin --profile web add dsh-oauth-copilot
 ```
 
 重启 `dsh web` 生效（插件的 `cordis.patch.yml` 经 `dsh.bundle.patch` 自动加载，id `llm-github-copilot`）。
@@ -25,8 +25,7 @@ dsh plugin --profile web add dsh-oauth-copilot   # npm 发布后；本地开发:
 认证是**纯人工终端操作**，全程不经过 LLM——非官方模型即使被提示注入，也无法发起或撤销授权。
 
 ```sh
-cd ~/projects/dsh-oauth-copilot
-dsh-copilot-auth login     # 打印设备码 URL 与代码（终端醒目输出）
+dsh-copilot-auth login     # 打印设备码 URL 与代码（终端醒目输出；仓库检出: node scripts/dsh-copilot-auth.mjs login）
 dsh-copilot-auth status    # grant 过期时间与可用模型
 dsh-copilot-auth logout    # 移除本地 grant
 ```
