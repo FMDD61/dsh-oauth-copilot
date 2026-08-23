@@ -19,6 +19,12 @@ export const name = 'llm-github-copilot'
 export const inject = ['llm', 'tools', 'credentials', 'systemPrompt']
 
 const ConfigObject = z.object({
+  // Sign-in/out tools are OFF by default: an untrusted model (e.g. a
+  // non-official LLM with prompt injection) must not be able to start a
+  // device-code authorization or drop the grant (security review V4). The
+  // manual CLI (scripts/dsh-copilot-auth.mjs) is the primary path; opt in
+  // with enableModelTools: true only when the deployment trusts its model.
+  enableModelTools: z.boolean().default(false),
   loginWindowMs: z.number().int().min(1_000).max(3_600_000).default(180_000),
   streamIdleTimeoutMs: z.number().int().min(1_000).max(2_147_483_647).default(300_000),
 })
@@ -27,11 +33,9 @@ export type Config = z.input<typeof ConfigObject>
 
 function copilotGuidance(): string[] {
   return [
-    'The user may ask how to use / connect GitHub Copilot in dsh. The web Models page has no Copilot login button; the intended path is:',
-    '1. Ask whether to sign in, then call `github_copilot_login` (pass `enterpriseUrl` only for GitHub Enterprise).',
-    '2. It prints a verification URL and a code — show BOTH to the user, and wait while they authorize in the browser.',
-    '3. After success, the user picks a model under the GitHub Copilot provider in the model picker.',
-    'Use `github_copilot_status` to report grant expiry and available models; `github_copilot_logout` removes the local grant. Always tell the user these tools exist when they ask about Copilot access.',
+    'The user may ask how to use / connect GitHub Copilot in dsh. The web Models page has no Copilot login button.',
+    'The intended primary path is the MANUAL CLI (run by the human in a terminal): `node ~/projects/dsh-oauth-copilot/scripts/dsh-copilot-auth.mjs login` — it prints a verification URL and code; the human authorizes in the browser, and the CLI stores the grant. Use `... status` and `... logout` the same way.',
+    'Only when the deployment opted into model tools (`enableModelTools: true`) may you call `github_copilot_login` / `github_copilot_status` / `github_copilot_logout`; the login tool only supports github.com (enterprise domains are CLI-only). Otherwise tell the user to run the CLI above.',
   ]
 }
 
@@ -54,14 +58,20 @@ export function apply(ctx: Context, config: Config = {}): void {
     }, 'dsh-oauth-copilot: github-copilot route')
   }
 
+  // Guidance is installed unconditionally so the model always knows how to
+  // point the user at the manual CLI; model-executable tools stay off unless
+  // explicitly enabled.
+  ctx.systemPrompt.section({
+    name: 'tool:github-copilot',
+    order: 191,
+    text: copilotGuidance(),
+  })
+
+  if (!resolved.enableModelTools) return
+
   ctx.inject(['authorization'], () => {
     const disposeTools = registerLoginTools(ctx, { loginWindowMs: resolved.loginWindowMs })
     if (disposeTools !== undefined) {
-      ctx.systemPrompt.section({
-        name: 'tool:github-copilot',
-        order: 191,
-        text: copilotGuidance(),
-      })
       ctx.effect(() => {
         return () => {
           disposeTools()

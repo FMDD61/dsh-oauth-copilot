@@ -3,15 +3,57 @@ import type { Context } from '@deepseek-ai/cordis'
 import { credentialRef, isCredentialRefName, type CredentialRecord } from '@deepseek-ai/dsh-credentials'
 import { GITHUB_COPILOT_RECORD_KEY } from './constants.js'
 
-/** Map a harness credential record back to the pi-ai credential shape. */
+/**
+ * Strict validation of a stored Copilot grant before it is trusted (V3 of the
+ * security review): a forged record pointing `proxy-ep` at an attacker host
+ * would redirect every request (prompts included) to the attacker's server.
+ * Records that fail validation are ignored — treated as not signed in — and
+ * never sent to pi-ai.
+ */
+function validatePiCredential(value: unknown): value is Credential {
+  if (typeof value !== 'object' || value === null) return false
+  const cred = value as Record<string, unknown>
+  if (cred.type !== 'oauth') return false
+  if (typeof cred.access !== 'string' || cred.access.length === 0) return false
+  if (typeof cred.refresh !== 'string' || cred.refresh.length === 0) return false
+  if (typeof cred.expires !== 'number') return false
+  if (cred.availableModelIds !== undefined && !Array.isArray(cred.availableModelIds)) return false
+  // proxy-ep host must be the official endpoint or the record's own
+  // enterprise domain — never an arbitrary host.
+  const proxyMatch = /(?:^|;)proxy-ep=([^;]+)/.exec(cred.access)
+  if (proxyMatch === null) return false
+  try {
+    const host = new URL(`https://${proxyMatch[1]}`).hostname
+    const enterprise = typeof cred.enterpriseUrl === 'string' && cred.enterpriseUrl.length > 0
+      ? cred.enterpriseUrl
+      : undefined
+    const enterpriseHost = enterprise === undefined ? undefined : new URL(`https://${enterprise}`).hostname
+    const enterpriseProxyHost = enterpriseHost === undefined ? undefined : `proxy.${enterpriseHost}`
+    const allowed = new Set<string>()
+    allowed.add('proxy.individual.githubcopilot.com')
+    if (enterpriseProxyHost !== undefined) allowed.add(enterpriseProxyHost)
+    if (!allowed.has(host)) return false
+  } catch {
+    return false
+  }
+  return true
+}
+
+/** Map a harness credential record back to the pi-ai credential shape (validated). */
 function recordToPi(record: CredentialRecord | undefined): Credential | undefined {
   if (record === undefined) return undefined
   if (record.kind !== 'grant') return undefined
+  if (!validatePiCredential(record.payload)) {
+    console.warn('dsh-oauth-copilot: ignoring invalid/forged Copilot grant record')
+    return undefined
+  }
   return record.payload as Credential
 }
 
 function piToRecord(credential: Credential | undefined): CredentialRecord | undefined {
   if (credential === undefined) return undefined
+  // Never persist a credential that the read path would reject.
+  if (!validatePiCredential(credential)) return undefined
   return { kind: 'grant', payload: credential }
 }
 

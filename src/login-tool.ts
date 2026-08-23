@@ -13,6 +13,19 @@ const LOGIN_METHOD = 'oauth'
 /** Tool names registered by this module in the current process (dedupe across loader double-apply). */
 const registeredTools = new Set<string>()
 
+/**
+ * Strip token-like material from provider errors before they reach the model
+ * context (V2 of the security review). Same redaction rules as the community
+ * dsh-oauth-openai driver.
+ */
+function safeMessage(error: unknown): string {
+  return (error instanceof Error ? error.message : String(error))
+    .replace(/\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/gu, '[redacted token]')
+    .replace(/((?:access|refresh|id)_token["'=:\s]+)[^&\s,"'}]+/giu, '$1[redacted]')
+    .replace(/(\b(?:code|token|refresh_token|access_token)=)[^&\s]+/giu, '$1[redacted]')
+    .slice(0, 1_000)
+}
+
 function renderNotice(notice: AuthorizationNotice): string {
   let text = notice.message
   if (notice.url !== undefined) text += `\n  打开: ${notice.url}`
@@ -51,7 +64,14 @@ export function registerLoginTools(ctx: Context, options: LoginToolOptions): (()
       render: (_args: unknown, value: string) => [{ type: 'text' as const, text: value }],
     },
     async execute(args, _exec) {
+      // V1 of the security review: never let the model point the device flow
+      // at an arbitrary enterprise host (device-code phishing / OAT theft).
+      // GitHub Enterprise sign-in is only available through the manual CLI
+      // (scripts/dsh-copilot-auth.mjs --enterprise-url <domain>).
       const enterpriseUrl = typeof args.enterpriseUrl === 'string' ? args.enterpriseUrl.trim() : ''
+      if (enterpriseUrl.length > 0) {
+        return 'GitHub Enterprise 登录请使用人工 CLI：在终端执行 scripts/dsh-copilot-auth.mjs login --enterprise-url <域名>。模型工具仅支持 github.com。'
+      }
       const current = await ctx.credentials.describeRecord(GITHUB_COPILOT_RECORD_KEY)
       if (current?.configured === true) {
         return 'GitHub Copilot 已登录。如需重新登录，请先注销（github_copilot_logout）。'
@@ -67,7 +87,7 @@ export function registerLoginTools(ctx: Context, options: LoginToolOptions): (()
           notices.push(renderNotice(notice))
         },
         async prompt(prompt: AuthorizationPrompt): Promise<string> {
-          return answer(prompt, enterpriseUrl)
+          return answer(prompt, '')
         },
       }
       let outcome: { status: 'authorized' | 'cancelled' } | 'timeout'
@@ -84,10 +104,18 @@ export function registerLoginTools(ctx: Context, options: LoginToolOptions): (()
         outcome = await Promise.race([beginPromise, timeoutPromise])
         if (timer !== undefined) clearTimeout(timer)
         if (outcome === 'timeout') {
-          await ctx.authorization.cancel(GITHUB_COPILOT_RECORD_KEY)
+          // V5: give an authorization that completed exactly at the window edge
+          // a moment to settle before cancelling.
+          const settled = await Promise.race([
+            beginPromise.then(() => true).catch(() => true),
+            new Promise<false>(resolve => setTimeout(() => resolve(false), 500)),
+          ])
+          if (!settled) await ctx.authorization.cancel(GITHUB_COPILOT_RECORD_KEY)
         }
       } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : String(error)
+        // V2: never surface raw provider errors (may embed tokens or
+        // attacker-controlled bodies) into the model context.
+        const message = safeMessage(error)
         const head = notices.length > 0 ? notices[0] : '已发起 GitHub Copilot 登录。'
         const rest = notices.slice(1).map((n, i) => (i === 0 ? `- ${n}` : n))
         return [head, ...rest, '', `GitHub Copilot 登录失败：${message}`].join('\n')

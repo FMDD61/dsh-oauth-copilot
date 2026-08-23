@@ -26,55 +26,84 @@ dsh plugin --profile web add /home/fmdd61/projects/dsh-oauth-copilot
 ```
 
 Restart `dsh web` once. The plugin's `cordis.patch.yml` (id `llm-github-copilot`) is loaded from the
-package's `dsh.bundle.patch`.
+package's `dsh.bundle.patch`. The `authorization` service entry in the profile patch activates the
+model login tools when they are enabled.
 
-## Use
+## Use — manual CLI is the primary path
 
-Ask the agent (or type in the web chat):
+Sign-in is a **human-only terminal operation**; no LLM involvement, so prompt-injection in a
+non-official model cannot start or drop an authorization.
 
-- **"登录 GitHub Copilot"** → calls `github_copilot_login` — prints the device-code URL + code;
-  open it, authorize, and the tool finishes with a success message.
-- **"查看 Copilot 状态"** → `github_copilot_status` — grant expiry and available models.
-- **"注销 GitHub Copilot"** → `github_copilot_logout` — removes the local grant.
+```sh
+cd ~/projects/dsh-oauth-copilot
+node scripts/dsh-copilot-auth.mjs login                 # prints device-code URL + code
+node scripts/dsh-copilot-auth.mjs status                # grant expiry + available models
+node scripts/dsh-copilot-auth.mjs logout                # remove the local grant
+```
+
+`login` accepts `--enterprise-url <domain>` for GitHub Enterprise (the target host is shown for
+confirmation before the flow starts) and `--timeout <ms>` (default 180000). Tokens are never
+printed; provider errors are redacted; the credential file is written atomically with 0600 perms.
 
 After login, pick any model under **GitHub Copilot** in the model picker. Requests authenticate with
 the Copilot token; expired tokens refresh automatically; the model list is filtered by the account's
 available models (pi-ai's native `filterModels`).
 
-## Config
+## Opt-in model tools
+
+Model-executable tools (`github_copilot_login` / `github_copilot_status` / `github_copilot_logout`)
+are **off by default** and only register when the `authorization` service is mounted **and**
+`enableModelTools: true` is set. The login tool only supports github.com — enterprise domains are
+CLI-only — and all tool errors are redacted before they reach the model context.
 
 ```yaml
 - id: llm-github-copilot
   config:
-    loginWindowMs: 180000       # how long a login tool call waits before cancelling
+    enableModelTools: true       # opt in; default false
+    loginWindowMs: 180000        # how long a login tool call waits before cancelling
     streamIdleTimeoutMs: 300000
 ```
+
+## Security posture
+
+Reviewed against the community implementations (dsh-oauth / dsh-oauth-openai) with an adversarial
+review pass; fixes applied:
+
+- **Grant validation** (`src/credential-store.ts`, CLI): stored payloads are schema-checked and the
+  `proxy-ep` endpoint must be the official host or the record's own enterprise host — forged records
+  can no longer redirect model traffic to an attacker server.
+- **Enterprise host injection** (V1): the model login tool refuses `enterpriseUrl`; the CLI shows and
+  requires the target host before starting a flow.
+- **Redaction** (V2): provider errors are JWT/token-pattern redacted and truncated before display.
+- **Model-side authority** (V4): sign-in/out tools default off; the CLI path needs no model at all.
+- No redirect URI, no local callback port, scope fixed at `read:user`, one authorization attempt per
+  key, credentials stored 0600 outside settings/describe/environment.
 
 ## How it works
 
 | Piece | File | Responsibility |
 |---|---|---|
 | Route | `src/adapter.ts` | Registers `github-copilot` via `PiAiAdapter`; request-level apiKey stays undefined so pi-ai's native OAuth auth takes over |
-| Grant bridge | `src/credential-store.ts` | Maps the harness record `llm-pi-ai/github-copilot` (kind `grant`, pi-ai credential payload) to a pi-ai `CredentialStore` + ambient `AuthContext` |
-| Login | `src/login-tool.ts` | Agent tools that drive the already-registered `ctx.authorization` flow for the Copilot key (device code), plus status/logout |
+| Grant bridge | `src/credential-store.ts` | Strictly validated mapping of the harness record `llm-pi-ai/github-copilot` (kind `grant`) to a pi-ai `CredentialStore` + ambient `AuthContext` |
+| Manual CLI | `scripts/dsh-copilot-auth.mjs` | Human-driven device-code login/status/logout writing the same record |
+| Login tools | `src/login-tool.ts` | Optional model tools driving the `ctx.authorization` flow (opt-in only) |
 
 ## Development
 
 ```sh
 npm install
 npm run typecheck
-npm test          # unit + composition
+npm test          # unit + composition + grant validation
 npm run build
-node scripts/smoke.mjs   # mounts the built plugin on real seams in a temp DSH_HOME
+node scripts/smoke.mjs           # mounts the built plugin on real seams in a temp DSH_HOME
+node scripts/smoke-noauth.mjs    # verifies the tree still boots without the authorization service
 ```
 
 ## Compatibility note
 
-Login tools (`github_copilot_login` / `github_copilot_status` / `github_copilot_logout`) register
-only when the `authorization` service is mounted — dsh 0.1.1-rc.2's dsh-base does not mount it, so
-in that stock combination the plugin activates with the **github-copilot route only** (no login
-tools). The model route itself never depends on the authorization service; a missing service must
-not take the whole plugin tree down.
+The model route always activates; login tools need the `authorization` service mounted and the
+opt-in flag. dsh 0.1.1-rc.2's dsh-base does not mount that service by default — the profile patch
+adds it. A missing service must never take the whole plugin tree down.
 
 ## License
 

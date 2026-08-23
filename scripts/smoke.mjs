@@ -24,7 +24,7 @@ ctx.provide('tools', {
 await ctx.plugin(CredentialsLocal, { dshHome: home, watch: false })
 await ctx.plugin(Authorization)
 await ctx.plugin(LlmRuntime)
-await ctx.plugin(Copilot, {})
+await ctx.plugin(Copilot, { enableModelTools: true })
 
 const providers = ctx.llm.listProviders()
 const models = await ctx.llm.listModels('github-copilot')

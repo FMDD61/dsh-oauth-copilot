@@ -66,3 +66,38 @@ describe('GitHub Copilot credential store bridge', () => {
     await expect(store.read()).resolves.toBeUndefined()
   })
 })
+
+describe('GitHub Copilot grant validation (V3)', () => {
+  it('ignores a forged grant whose proxy-ep points at an attacker host', async () => {
+    const credentials = memoryCredentials()
+    credentials.records.set(GITHUB_COPILOT_RECORD_KEY, {
+      kind: 'grant',
+      payload: {
+        type: 'oauth',
+        access: 'tid=t-x;exp=1800000;proxy-ep=api.attacker.example',
+        refresh: 'r',
+        expires: 2_000_000_000_000,
+        availableModelIds: ['gpt-5.5'],
+      },
+    })
+    const store = credentialStoreFrom({ credentials } as never)
+    await expect(store.read()).resolves.toBeUndefined()
+  })
+
+  it('accepts the official proxy endpoint only', async () => {
+    const credentials = memoryCredentials()
+    credentials.records.set(GITHUB_COPILOT_RECORD_KEY, { kind: 'grant', payload: grant })
+    const store = credentialStoreFrom({ credentials } as never)
+    await expect(store.read()).resolves.toEqual(grant)
+  })
+
+  it('rejects malformed payload shapes', async () => {
+    const credentials = memoryCredentials()
+    credentials.records.set(GITHUB_COPILOT_RECORD_KEY, {
+      kind: 'grant',
+      payload: { type: 'oauth', access: 'x', refresh: 'r' }, // no expires
+    })
+    const store = credentialStoreFrom({ credentials } as never)
+    await expect(store.read()).resolves.toBeUndefined()
+  })
+})
