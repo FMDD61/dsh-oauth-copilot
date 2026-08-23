@@ -1,7 +1,12 @@
 import { githubCopilotProvider } from '@earendil-works/pi-ai/providers/github-copilot'
 import type { Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-attachment'
-import { resolveRetryPolicy, type GenerateOptions, type StreamChunk } from '@deepseek-ai/dsh-llm'
+import {
+  resolveRetryPolicy,
+  type GenerateOptions,
+  type PreparedAdapterCall,
+  type StreamChunk,
+} from '@deepseek-ai/dsh-llm'
 import { PiAiAdapter } from '@deepseek-ai/dsh-llm-pi-ai'
 import type { ResolvedPiAiProviderProfile } from '@deepseek-ai/dsh-llm-pi-ai'
 import { GITHUB_COPILOT_PROVIDER_ID } from './constants.js'
@@ -26,9 +31,21 @@ export function normalizeStringContent<T extends { content: unknown }>(messages:
 
 /**
  * PiAiAdapter that canonicalizes string message content to the block-array
- * shape pi-ai's GitHub Copilot header handling requires.
+ * shape pi-ai's GitHub Copilot header handling requires. The harness dispatch
+ * path goes through `prepareCall()` (which closes over the internal stream),
+ * so both entry points must be wrapped.
  */
 class NormalizedPiAiAdapter extends PiAiAdapter {
+  override prepareCall(provider: string, model: string, signal?: AbortSignal): Promise<PreparedAdapterCall> {
+    return super.prepareCall(provider, model, signal).then((call) => ({
+      ...call,
+      stream: (options: GenerateOptions) => call.stream({
+        ...options,
+        messages: normalizeStringContent(options.messages),
+      }),
+    }))
+  }
+
   override stream(options: GenerateOptions): AsyncIterable<StreamChunk> {
     return super.stream({
       ...options,
