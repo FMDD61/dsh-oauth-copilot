@@ -10,6 +10,14 @@
     "oauth"
   ],
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/FMDD61/dsh-oauth-copilot.git"
+  },
+  "homepage": "https://github.com/FMDD61/dsh-oauth-copilot",
+  "bugs": {
+    "url": "https://github.com/FMDD61/dsh-oauth-copilot/issues"
+  },
   "type": "module",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",

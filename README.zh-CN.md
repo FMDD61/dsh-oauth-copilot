@@ -1,5 +1,7 @@
 # dsh-oauth-copilot
 
+[![npm](https://img.shields.io/npm/v/dsh-oauth-copilot)](https://www.npmjs.com/package/dsh-oauth-copilot) · [GitHub](https://github.com/FMDD61/dsh-oauth-copilot)
+
 面向 [DeepSeek Harness](https://www.npmjs.com/package/@deepseek-ai/dsh) 的 GitHub Copilot 登录与模型路由插件。
 
 通过设备码流程登录 GitHub，把 Copilot 授权存入 harness 凭据记录，并注册基于 pi-ai Copilot 模型目录的 **github-copilot** LLM 路由——全部走官方 seam（`ctx.credentials` / `ctx.authorization` / `ctx.llm`），不依赖第三方 OAuth 基座。

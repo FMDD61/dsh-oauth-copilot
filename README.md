@@ -1,5 +1,7 @@
 # dsh-oauth-copilot
 
+[![npm](https://img.shields.io/npm/v/dsh-oauth-copilot)](https://www.npmjs.com/package/dsh-oauth-copilot) · [GitHub](https://github.com/FMDD61/dsh-oauth-copilot)
+
 GitHub Copilot sign-in and model route for [DeepSeek Harness](https://www.npmjs.com/package/@deepseek-ai/dsh).
 
 Sign in to GitHub via the device-code flow, store the Copilot grant through the harness credential
