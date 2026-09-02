@@ -1,6 +1,6 @@
 {
   "name": "dsh-oauth-copilot",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "GitHub Copilot OAuth provider and model adapter for DeepSeek Harness",
   "keywords": [
     "deepseek-harness",

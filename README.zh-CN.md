@@ -6,7 +6,7 @@
 
 通过设备码流程登录 GitHub，把 Copilot 授权存入 harness 凭据记录，并注册基于 pi-ai Copilot 模型目录的 **github-copilot** LLM 路由——全部走官方 seam（`ctx.credentials` / `ctx.authorization` / `ctx.llm`），不依赖第三方 OAuth 基座。
 
-> **状态：0.1.0** —— 已针对 dsh 0.1.1-rc.2 / pi-ai 0.82.1 构建并做真实账号验证。English: [README.md](README.md)。
+> **状态：0.1.1** —— 已针对 dsh 0.1.1-rc.2 / pi-ai 0.82.1 构建并做真实账号验证；dsh 0.1.2-alpha.1 兼容性已复核（typecheck/build/13 tests 全绿，seam 均在位）。English: [README.md](README.md)。
 
 ## 为什么不基于社区 dsh-oauth
 

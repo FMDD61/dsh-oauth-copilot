@@ -8,7 +8,7 @@ Sign in to GitHub via the device-code flow, store the Copilot grant through the 
 records, and register a **github-copilot** LLM route backed by pi-ai's Copilot model catalog — all on
 official dsh seams, with no third-party OAuth base required.
 
-> **Status: 0.1.0** — built and verified against dsh 0.1.1-rc.2 / pi-ai 0.82.1. 中文版见
+> **Status: 0.1.1** — built and verified against dsh 0.1.1-rc.2 / pi-ai 0.82.1, and re-verified against dsh 0.1.2-alpha.1 (typecheck/build/13 tests, seams present). 中文版见
 > [README.zh-CN.md](README.zh-CN.md).
 
 ## Why not the community dsh-oauth base

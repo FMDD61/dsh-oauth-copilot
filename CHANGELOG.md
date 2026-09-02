@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.1 — 2026-08-30
+
+Compatibility maintenance (no code change).
+
+- Verified against **dsh 0.1.2-alpha.1**: all used seams confirmed present
+  (`ctx.llm.registerAdapter`, `PiAiAdapter`, `ctx.authorization.begin/cancel/list`,
+  `ctx.credentials.{readRecord,describeRecord,deleteRecord}`, `credentialRef`);
+  peer ranges `^0.1.1-rc.2` cover `0.1.2-alpha.1`; typecheck/build/13 tests green.
+
 ## 0.1.0 — 2026-08-23
 
 Initial release.
