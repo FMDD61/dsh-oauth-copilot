@@ -40,6 +40,19 @@ describe('dsh-oauth-copilot composition', () => {
     await ctx.fiber.dispose()
   })
 
+  it('resolves every catalog model without a modelErrors crash (0.1.5-rc.1)', async () => {
+    const ctx = baseCtx([])
+    await ctx.plugin(LlmRuntime)
+    await ctx.plugin(GitHubCopilot, {})
+    const models = await ctx.llm.listModels('github-copilot')
+    expect(models.length).toBeGreaterThan(0)
+    for (const model of models) {
+      const resolved = await ctx.llm.resolveModelInfo('github-copilot', model.id)
+      expect(resolved.id).toBe(model.id)
+    }
+    await ctx.fiber.dispose()
+  })
+
   it('registers the three login tools when enableModelTools is true', async () => {
     const ctx = baseCtx([])
     await ctx.plugin(LlmRuntime)

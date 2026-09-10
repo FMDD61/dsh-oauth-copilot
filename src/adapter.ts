@@ -62,6 +62,10 @@ class NormalizedPiAiAdapter extends PiAiAdapter {
  * available-model filtering both work out of the box.
  */
 export function createGitHubCopilotAdapter(ctx: Context, streamIdleTimeoutMs: number): PiAiAdapter {
+  // dsh 0.1.5-rc.1 made `modelErrors` a required member of the resolved profile
+  // (`PiAiAdapter.modelOf` reads it before dispatch). Without it the whole
+  // github-copilot catalog fails with "Cannot read properties of undefined
+  // (reading 'get')". The field is additive, so older 0.1.x hosts ignore it.
   const profile: ResolvedPiAiProviderProfile = {
     provider: GITHUB_COPILOT_PROVIDER_ID,
     displayName: 'GitHub Copilot',
@@ -71,6 +75,7 @@ export function createGitHubCopilotAdapter(ctx: Context, streamIdleTimeoutMs: nu
     requestImageMaxBytes: 1_048_576,
     retryPolicy: resolveRetryPolicy(undefined, 'dsh-oauth-copilot retryPolicy'),
     configuredMaxTokens: new Map(),
+    modelErrors: new Map(),
     piProvider: githubCopilotProvider(),
   }
   const profiles = new Map<string, ResolvedPiAiProviderProfile>([[GITHUB_COPILOT_PROVIDER_ID, profile]])

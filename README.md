@@ -8,13 +8,14 @@ Sign in to GitHub via the device-code flow, store the Copilot grant through the 
 records, and register a **github-copilot** LLM route backed by pi-ai's Copilot model catalog — all on
 official dsh seams, with no third-party OAuth base required.
 
-> **Status: 0.1.1** — built and verified against dsh 0.1.1-rc.2 / pi-ai 0.82.1, and re-verified against dsh 0.1.2-alpha.1 (typecheck/build/13 tests, seams present). 中文版见
-> [README.zh-CN.md](README.zh-CN.md).
+> **Status: 0.2.0** — built and verified against dsh 0.1.5-rc.1 / pi-ai 0.85.1 (typecheck/build/14
+> tests green, including a compose-level catalog-resolution regression for the rc.1 `modelErrors`
+> contract). 中文版见 [README.zh-CN.md](README.zh-CN.md).
 
 ## Why not the community dsh-oauth base
 
 The current dsh-oauth release (0.2.0) is built against the 0.1.0-rc.6/rc.8 package line and its peers
-are semver-incompatible with the shipped dsh 0.1.1-rc.2 — npm refuses to install both in one profile.
+are semver-incompatible with the shipped dsh 0.1.x line — npm refuses to install both in one profile.
 This plugin therefore targets the official seams directly (`ctx.credentials` records, `ctx.authorization`
 flows, `ctx.llm` adapters), which also keeps the login working when dsh-llm-pi-ai's registered Copilot
 flow is present.
@@ -86,8 +87,9 @@ are **off by default** and only register when the `authorization` service is mou
   (`proxy.individual.githubcopilot.com`), and the model login tool and the CLI reject enterprise
   domains explicitly. This is a security decision: a forged `enterpriseUrl` would redirect pi-ai's
   automatic token refresh to an attacker server.
-- **Tied to the 0.1.1-rc.2 package line.** Peer ranges are `^0.1.1-rc.2`; a future dsh 0.1.1 stable
-  or 0.2.0 upgrade will extend them along with the adapter contract.
+- **Tied to the 0.1.5-rc.1 package line.** Peer ranges are `^0.1.5-rc.1` and the pi-ai dependency is
+  `^0.85.1`; a future dsh 0.2.0 upgrade will extend them along with the adapter contract. The
+  `modelErrors` member is additive, so hosts that do not read it ignore it.
 - The CLI prints zh-CN messages (bilingual PRs welcome).
 - Do not run `dsh-copilot-auth login/logout` while another process is actively writing the
   credentials file; the CLI uses atomic 0600 writes but does not take dsh's cross-process write lock.
@@ -100,7 +102,7 @@ are **off by default** and only register when the `authorization` service is mou
   pick a model from the `status` output.
 - **How do I revoke access completely?** `dsh-copilot-auth logout` removes the local grant; on
   GitHub, Settings → Applications → revoke the Copilot authorization.
-- **Where is the login button in the web UI?** There isn't one (dsh 0.1.1-rc.2 exposes no OAuth
+- **Where is the login button in the web UI?** There isn't one (dsh 0.1.5-rc.1 exposes no OAuth
   surface in the Models page); the CLI is the sign-in path.
 - **How do I update the plugin?** `npm install -g dsh-oauth-copilot@latest && dsh plugin --profile
   web add dsh-oauth-copilot` (or bump the version in the profile package.json), then restart dsh web.
@@ -145,8 +147,8 @@ node scripts/verify-vision.mjs   # opencode-go vision route probe (REASONING_EFF
 ## Compatibility note
 
 The model route always activates; login tools need the `authorization` service mounted and the
-opt-in flag. dsh 0.1.1-rc.2's dsh-base does not mount that service by default — the profile patch
-adds it. A missing service must never take the whole plugin tree down.
+opt-in flag. The shipped dsh-base profile does not mount that service by default — the profile
+patch adds it. A missing service must never take the whole plugin tree down.
 
 ## License
 

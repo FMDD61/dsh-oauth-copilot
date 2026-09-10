@@ -6,11 +6,11 @@
 
 通过设备码流程登录 GitHub，把 Copilot 授权存入 harness 凭据记录，并注册基于 pi-ai Copilot 模型目录的 **github-copilot** LLM 路由——全部走官方 seam（`ctx.credentials` / `ctx.authorization` / `ctx.llm`），不依赖第三方 OAuth 基座。
 
-> **状态：0.1.1** —— 已针对 dsh 0.1.1-rc.2 / pi-ai 0.82.1 构建并做真实账号验证；dsh 0.1.2-alpha.1 兼容性已复核（typecheck/build/13 tests 全绿，seam 均在位）。English: [README.md](README.md)。
+> **状态：0.2.0** —— 已针对 dsh 0.1.5-rc.1 / pi-ai 0.85.1 构建并验证（typecheck/build/14 tests 全绿，含一条复现 rc.1 `modelErrors` 契约崩溃的组合级目录解析回归测试）。English: [README.md](README.md)。
 
 ## 为什么不基于社区 dsh-oauth
 
-当前 dsh-oauth（0.2.0）构建于 0.1.0-rc.6/rc.8 包线，其 peer 与出货版 dsh 0.1.1-rc.2 在 semver 上互斥（npm 拒绝同 profile 安装）。因此本插件直接对接官方 seam（凭据记录、授权 flow、LLM 适配器），dsh-llm-pi-ai 已注册的 Copilot flow 可直接复用。
+当前 dsh-oauth（0.2.0）构建于 0.1.0-rc.6/rc.8 包线，其 peer 与出货版 dsh 0.1.x 线在 semver 上互斥（npm 拒绝同 profile 安装）。因此本插件直接对接官方 seam（凭据记录、授权 flow、LLM 适配器），dsh-llm-pi-ai 已注册的 Copilot flow 可直接复用。
 
 ## 安装
 
@@ -66,7 +66,7 @@ dsh-copilot-auth logout         # 移除本地 grant
 ## 已知限制
 
 - **GitHub Enterprise 不支持。** 凭据白名单仅接受官方端点（`proxy.individual.githubcopilot.com`），模型登录工具与 CLI 均显式拒绝企业域。这是安全决策：伪造的 `enterpriseUrl` 会把 pi-ai 的自动 token 刷新指向攻击者服务器。
-- **绑定 0.1.1-rc.2 包线。** peer 范围为 `^0.1.1-rc.2`；未来 dsh 0.1.1 稳定版或 0.2.0 会随适配器契约一起扩展。
+- **绑定 0.1.5-rc.1 包线。** peer 范围为 `^0.1.5-rc.1`，pi-ai 依赖为 `^0.85.1`；未来 dsh 0.2.0 会随适配器契约一起扩展。`modelErrors` 成员是附加字段，不读取它的宿主会直接忽略。
 - CLI 输出为中文（欢迎双语 PR）。
 - 请勿在另一进程正在写凭据文件时执行 `dsh-copilot-auth login/logout`：CLI 使用 0600 原子写，但未持有 dsh 的跨进程写锁。
 
@@ -75,7 +75,7 @@ dsh-copilot-auth logout         # 移除本地 grant
 - **`dsh-copilot-auth: command not found`** —— npm 全局安装包（`npm install -g dsh-oauth-copilot`），或直接用 `npx -y dsh-oauth-copilot login`。
 - **模型请求返回 HTTP 400 "model not supported"** —— 先运行 `dsh-copilot-auth refresh`，再按 `status` 输出选模型。
 - **如何彻底撤销授权？** `dsh-copilot-auth logout` 移除本地 grant；GitHub → Settings → Applications 撤销 Copilot 授权。
-- **Web UI 里登录按钮在哪？** 没有（dsh 0.1.1-rc.2 的 Models 页不暴露 OAuth 入口）；CLI 即登录路径。
+- **Web UI 里登录按钮在哪？** 没有（dsh 0.1.5-rc.1 的 Models 页不暴露 OAuth 入口）；CLI 即登录路径。
 - **如何更新插件？** `npm install -g dsh-oauth-copilot@latest && dsh plugin --profile web add dsh-oauth-copilot`（或更新 profile package.json 版本），然后重启 dsh web。
 
 ## 安全姿态
@@ -113,7 +113,7 @@ node scripts/verify-vision.mjs   # opencode-go 视觉路由探测（REASONING_EF
 
 ## 兼容性注记
 
-模型路由始终激活；登录工具需要 `authorization` 服务挂载 + 显式开启。dsh 0.1.1-rc.2 的 dsh-base 默认不挂该服务——profile patch 已补充挂载。服务缺失绝不能拖垮整个插件树。
+模型路由始终激活；登录工具需要 `authorization` 服务挂载 + 显式开启。出货版 dsh-base profile 默认不挂该服务——profile patch 已补充挂载。服务缺失绝不能拖垮整个插件树。
 
 ## License
 
