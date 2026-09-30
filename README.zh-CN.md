@@ -6,7 +6,7 @@
 
 通过设备码流程登录 GitHub，把 Copilot 授权存入 harness 凭据记录，并注册基于 pi-ai Copilot 模型目录的 **github-copilot** LLM 路由——全部走官方 seam（`ctx.credentials` / `ctx.authorization` / `ctx.llm`），不依赖第三方 OAuth 基座。
 
-> **状态：0.2.0** —— 已针对 dsh 0.1.5-rc.1 / pi-ai 0.85.1 构建并验证（typecheck/build/14 tests 全绿，含一条复现 rc.1 `modelErrors` 契约崩溃的组合级目录解析回归测试）。English: [README.md](README.md)。
+> **状态：0.3.0** —— 已针对 dsh 0.2.0-rc.2 / pi-ai 0.87.1 构建并验证（typecheck/build/14 tests 全绿，含一条复现 `modelErrors` 契约崩溃的组合级目录解析回归测试）。peer 范围 `>=0.1.5-rc.1 <0.3.0` 同时覆盖 0.1.x 与 0.2.x 两条宿主线；`npm run verify:gate` 可复算宿主兼容门禁。English: [README.md](README.md)。
 
 ## 为什么不基于社区 dsh-oauth
 
@@ -49,7 +49,7 @@ dsh-copilot-auth logout         # 移除本地 grant
 
 ## 模型选择器说明
 
-选择器列出 pi-ai 的 advisory 目录（29 个 Copilot 模型），**并非每个模型在账号下都可用**：选择不可用模型会得到 HTTP 400 "model not supported"。`dsh-copilot-auth refresh` 会把账号可用清单（`policy=enabled`）写入 grant，此后选择器只显示可用项；刷新失败/为空时仍是全量 advisory 列表——重试 `refresh`，或按 `status` 输出里的模型选择。
+选择器列出 pi-ai 的 advisory 目录（pi-ai 0.87.1 下 32 个 Copilot 模型），**并非每个模型在账号下都可用**：选择不可用模型会得到 HTTP 400 "model not supported"。`dsh-copilot-auth refresh` 会把账号可用清单（`policy=enabled`）写入 grant，此后选择器只显示可用项；刷新失败/为空时仍是全量 advisory 列表——重试 `refresh`，或按 `status` 输出里的模型选择。
 
 ## 可选：模型端工具（默认关闭）
 
@@ -66,7 +66,7 @@ dsh-copilot-auth logout         # 移除本地 grant
 ## 已知限制
 
 - **GitHub Enterprise 不支持。** 凭据白名单仅接受官方端点（`proxy.individual.githubcopilot.com`），模型登录工具与 CLI 均显式拒绝企业域。这是安全决策：伪造的 `enterpriseUrl` 会把 pi-ai 的自动 token 刷新指向攻击者服务器。
-- **绑定 0.1.5-rc.1 包线。** peer 范围为 `^0.1.5-rc.1`，pi-ai 依赖为 `^0.85.1`；未来 dsh 0.2.0 会随适配器契约一起扩展。`modelErrors` 成员是附加字段，不读取它的宿主会直接忽略。
+- **peer 范围横跨 0.1.x 与 0.2.x 两条宿主线。** 6 个 `@deepseek-ai/dsh-*` peer 为 `>=0.1.5-rc.1 <0.3.0`，pi-ai 依赖为 `>=0.85.1 <0.88.0`。宿主兼容门禁（`semver.satisfies(runtimeVersion, range, { includePrerelease: true })`）对**整包**判定：任一 `@deepseek-ai/dsh-*` peer 不在运行版本范围内，该 bundle 会被整体跳过，模型选择器里的 github-copilot 入口随之消失。`npm run verify:gate` 按已知宿主版本复算该门禁。`modelErrors` 成员是附加字段，不读取它的宿主会直接忽略。
 - CLI 输出为中文（欢迎双语 PR）。
 - 请勿在另一进程正在写凭据文件时执行 `dsh-copilot-auth login/logout`：CLI 使用 0600 原子写，但未持有 dsh 的跨进程写锁。
 
@@ -75,7 +75,7 @@ dsh-copilot-auth logout         # 移除本地 grant
 - **`dsh-copilot-auth: command not found`** —— npm 全局安装包（`npm install -g dsh-oauth-copilot`），或直接用 `npx -y dsh-oauth-copilot login`。
 - **模型请求返回 HTTP 400 "model not supported"** —— 先运行 `dsh-copilot-auth refresh`，再按 `status` 输出选模型。
 - **如何彻底撤销授权？** `dsh-copilot-auth logout` 移除本地 grant；GitHub → Settings → Applications 撤销 Copilot 授权。
-- **Web UI 里登录按钮在哪？** 没有（dsh 0.1.5-rc.1 的 Models 页不暴露 OAuth 入口）；CLI 即登录路径。
+- **Web UI 里登录按钮在哪？** 没有（dsh 的 Models 页不暴露 OAuth 入口）；CLI 即登录路径。
 - **如何更新插件？** `npm install -g dsh-oauth-copilot@latest && dsh plugin --profile web add dsh-oauth-copilot`（或更新 profile package.json 版本），然后重启 dsh web。
 
 ## 安全姿态
@@ -104,6 +104,7 @@ npm install
 npm run typecheck
 npm test          # 单元 + 组合 + 凭据校验
 npm run build
+npm run verify:gate   # 按已知 dsh 宿主版本复算插件兼容门禁
 # scripts/ 只随仓库发布，不含在 npm 包内：请在仓库检出后运行
 node scripts/smoke.mjs           # 在临时 DSH_HOME 中把构建产物挂到真实 seam 上冒烟
 node scripts/smoke-noauth.mjs    # 验证无 authorization 服务时插件树照常启动

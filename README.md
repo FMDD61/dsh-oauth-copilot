@@ -8,9 +8,11 @@ Sign in to GitHub via the device-code flow, store the Copilot grant through the 
 records, and register a **github-copilot** LLM route backed by pi-ai's Copilot model catalog — all on
 official dsh seams, with no third-party OAuth base required.
 
-> **Status: 0.2.0** — built and verified against dsh 0.1.5-rc.1 / pi-ai 0.85.1 (typecheck/build/14
-> tests green, including a compose-level catalog-resolution regression for the rc.1 `modelErrors`
-> contract). 中文版见 [README.zh-CN.md](README.zh-CN.md).
+> **Status: 0.3.0** — built and verified against dsh 0.2.0-rc.2 / pi-ai 0.87.1 (typecheck/build/14
+> tests green, including a compose-level catalog-resolution regression for the `modelErrors`
+> contract). Peer ranges `>=0.1.5-rc.1 <0.3.0` cover both the 0.1.x and the 0.2.x host lines;
+> `npm run verify:gate` recomputes the host compatibility gate.
+> 中文版见 [README.zh-CN.md](README.zh-CN.md).
 
 ## Why not the community dsh-oauth base
 
@@ -61,7 +63,7 @@ printed; provider errors are redacted; the credential file is written atomically
 
 ## Model picker notes
 
-The picker lists the advisory pi-ai catalog (29 Copilot models). Not every model is enabled for your
+The picker lists the advisory pi-ai catalog (32 Copilot models on pi-ai 0.87.1). Not every model is enabled for your
 account: an unavailable pick returns HTTP 400 "model not supported". `dsh-copilot-auth refresh`
 stores the account-enabled list (`policy=enabled`) into the grant, so the picker then shows only
 those; a failed/empty refresh leaves the full advisory list visible — retry `refresh` or pick a model
@@ -87,9 +89,13 @@ are **off by default** and only register when the `authorization` service is mou
   (`proxy.individual.githubcopilot.com`), and the model login tool and the CLI reject enterprise
   domains explicitly. This is a security decision: a forged `enterpriseUrl` would redirect pi-ai's
   automatic token refresh to an attacker server.
-- **Tied to the 0.1.5-rc.1 package line.** Peer ranges are `^0.1.5-rc.1` and the pi-ai dependency is
-  `^0.85.1`; a future dsh 0.2.0 upgrade will extend them along with the adapter contract. The
-  `modelErrors` member is additive, so hosts that do not read it ignore it.
+- **Peer ranges span the 0.1.x and 0.2.x host lines.** The six `@deepseek-ai/dsh-*` peers are
+  `>=0.1.5-rc.1 <0.3.0` and the pi-ai dependency is `>=0.85.1 <0.88.0`. The host's compatibility
+  gate (`semver.satisfies(runtimeVersion, range, { includePrerelease: true })`) rejects a bundle
+  whose `@deepseek-ai/dsh-*` peers fall outside the running dsh version, and a rejected bundle is
+  skipped whole — which removes the github-copilot entry from the picker. `npm run verify:gate`
+  recomputes that check against the known host versions. The `modelErrors` member is additive, so
+  hosts that do not read it ignore it.
 - The CLI prints zh-CN messages (bilingual PRs welcome).
 - Do not run `dsh-copilot-auth login/logout` while another process is actively writing the
   credentials file; the CLI uses atomic 0600 writes but does not take dsh's cross-process write lock.
@@ -102,8 +108,8 @@ are **off by default** and only register when the `authorization` service is mou
   pick a model from the `status` output.
 - **How do I revoke access completely?** `dsh-copilot-auth logout` removes the local grant; on
   GitHub, Settings → Applications → revoke the Copilot authorization.
-- **Where is the login button in the web UI?** There isn't one (dsh 0.1.5-rc.1 exposes no OAuth
-  surface in the Models page); the CLI is the sign-in path.
+- **Where is the login button in the web UI?** There isn't one (the dsh Models page exposes no
+  OAuth surface); the CLI is the sign-in path.
 - **How do I update the plugin?** `npm install -g dsh-oauth-copilot@latest && dsh plugin --profile
   web add dsh-oauth-copilot` (or bump the version in the profile package.json), then restart dsh web.
 
@@ -137,6 +143,7 @@ npm install
 npm run typecheck
 npm test          # unit + composition + grant validation
 npm run build
+npm run verify:gate   # recompute the host plugin compatibility gate for the known dsh lines
 # scripts/ ship with the repo, not the npm tarball: run them from a checkout
 node scripts/smoke.mjs           # mounts the built plugin on real seams in a temp DSH_HOME
 node scripts/smoke-noauth.mjs    # verifies the tree still boots without the authorization service
