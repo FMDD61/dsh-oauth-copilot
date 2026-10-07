@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.3.1 — 2026-10-07
+
+Version-adapter tightening plus public-facing docs. **No source change** — every seam this plugin
+uses is unchanged.
+
+- **The upper bound of every peer range was wrong.** The ranges ended in `<0.3.0`, which reads as
+  "0.2.x only" but is not: the host evaluates peers with `includePrerelease: true`, and
+  `0.3.0-rc.1` is *less than* `0.3.0`. The entire 0.3.0 prerelease line was therefore admitted — a
+  dsh this package has never been tested against. All six gated peers now end in `<0.3.0-0`, the
+  bound that actually excludes it.
+- **`verify:gate` now checks both directions.** It also asserts that `0.3.0-0`, `0.3.0-rc.1` and
+  `0.3.0` are *refused*, so the bound cannot regress unnoticed; the default host list gained
+  `0.2.1-alpha`.
+- **Docs.** Bilingual READMEs brought in line — English is the default, Chinese lives at
+  `README_zh.md`. The compatibility note now explains the gate's `includePrerelease` semantics and
+  why the upper bound is written `<0.3.0-0`. New `AGENTS.md` for an agent asked to install, sign in
+  or diagnose the plugin.
+
 ## 0.3.0 — 2026-09-30
 
 dsh 0.2.0-rc.2 compatibility. Peer ranges widened and the pi-ai dependency range

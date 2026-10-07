@@ -1,6 +1,6 @@
 {
   "name": "dsh-oauth-copilot",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "GitHub Copilot OAuth provider and model adapter for DeepSeek Harness",
   "keywords": [
     "deepseek-harness",
@@ -51,7 +51,8 @@
     "lib",
     "cordis.patch.yml",
     "README.md",
-    "README.zh-CN.md",
+    "README_zh.md",
+    "AGENTS.md",
     "LICENSE",
     "CHANGELOG.md",
     "SECURITY.md",
@@ -88,12 +89,12 @@
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "^4.0.2",
-    "@deepseek-ai/dsh-attachment": ">=0.1.5-rc.1 <0.3.0",
-    "@deepseek-ai/dsh-authorization": ">=0.1.5-rc.1 <0.3.0",
-    "@deepseek-ai/dsh-credentials": ">=0.1.5-rc.1 <0.3.0",
-    "@deepseek-ai/dsh-llm": ">=0.1.5-rc.1 <0.3.0",
-    "@deepseek-ai/dsh-llm-pi-ai": ">=0.1.5-rc.1 <0.3.0",
-    "@deepseek-ai/dsh-tools": ">=0.1.5-rc.1 <0.3.0"
+    "@deepseek-ai/dsh-attachment": ">=0.1.5-rc.1 <0.3.0-0",
+    "@deepseek-ai/dsh-authorization": ">=0.1.5-rc.1 <0.3.0-0",
+    "@deepseek-ai/dsh-credentials": ">=0.1.5-rc.1 <0.3.0-0",
+    "@deepseek-ai/dsh-llm": ">=0.1.5-rc.1 <0.3.0-0",
+    "@deepseek-ai/dsh-llm-pi-ai": ">=0.1.5-rc.1 <0.3.0-0",
+    "@deepseek-ai/dsh-tools": ">=0.1.5-rc.1 <0.3.0-0"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "^4.0.4",

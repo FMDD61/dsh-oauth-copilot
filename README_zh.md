@@ -2,11 +2,13 @@
 
 [![npm](https://img.shields.io/npm/v/dsh-oauth-copilot)](https://www.npmjs.com/package/dsh-oauth-copilot) · [GitHub](https://github.com/FMDD61/dsh-oauth-copilot)
 
+English | **[中文文档](README_zh.md)**
+
 面向 [DeepSeek Harness](https://www.npmjs.com/package/@deepseek-ai/dsh) 的 GitHub Copilot 登录与模型路由插件。
 
 通过设备码流程登录 GitHub，把 Copilot 授权存入 harness 凭据记录，并注册基于 pi-ai Copilot 模型目录的 **github-copilot** LLM 路由——全部走官方 seam（`ctx.credentials` / `ctx.authorization` / `ctx.llm`），不依赖第三方 OAuth 基座。
 
-> **状态：0.3.0** —— 已针对 dsh 0.2.0-rc.2 / pi-ai 0.87.1 构建并验证（typecheck/build/14 tests 全绿，含一条复现 `modelErrors` 契约崩溃的组合级目录解析回归测试）。peer 范围 `>=0.1.5-rc.1 <0.3.0` 同时覆盖 0.1.x 与 0.2.x 两条宿主线；`npm run verify:gate` 可复算宿主兼容门禁。English: [README.md](README.md)。
+> **状态：0.3.1** —— 已针对 dsh 0.2.0-rc.2 / pi-ai 0.87.1 构建并验证（typecheck/build/tests 全绿，含一条复现 `modelErrors` 契约崩溃的组合级目录解析回归测试）。peer 范围 `>=0.1.5-rc.1 <0.3.0-0` 覆盖 0.1.x 与 0.2.x 两条宿主线 —— **含 `0.2.1-alpha`** —— 并拒绝整个 `0.3.0` 预发布线。`npm run verify:gate` 可复算该门禁，并额外断言 `0.3.0` 那条线始终被拒。
 
 ## 为什么不基于社区 dsh-oauth
 
@@ -113,6 +115,8 @@ node scripts/verify-vision.mjs   # opencode-go 视觉路由探测（REASONING_EF
 ```
 
 ## 兼容性注记
+
+**peer 范围与宿主门禁。** 只要有任何一个名为 `@deepseek-ai/dsh` 或以 `@deepseek-ai/dsh-` 开头的 peer 落在范围之外，dsh 就会**整包跳过**；判定用的是 `semver.satisfies(host, range, { includePrerelease: true })`。那个 flag 对**上界**尤其要紧：`0.3.0-rc.1` **小于** `0.3.0`，所以写成 `<0.3.0` 的范围会痛快地放行整条 `0.3.0` 预发布线 —— 一个从未测过的 dsh。因此这里的范围以 **`<0.3.0-0`** 结尾，只有它能真正排除那条线；`npm run verify:gate` 会双向断言（支持的两条线通过、`0.3.0` 那条被拒）。
 
 模型路由始终激活；登录工具需要 `authorization` 服务挂载 + 显式开启。出货版 dsh-base profile 默认不挂该服务——profile patch 已补充挂载。服务缺失绝不能拖垮整个插件树。
 

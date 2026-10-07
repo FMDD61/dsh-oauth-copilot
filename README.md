@@ -2,17 +2,19 @@
 
 [![npm](https://img.shields.io/npm/v/dsh-oauth-copilot)](https://www.npmjs.com/package/dsh-oauth-copilot) · [GitHub](https://github.com/FMDD61/dsh-oauth-copilot)
 
+English | **[中文文档](README_zh.md)**
+
 GitHub Copilot sign-in and model route for [DeepSeek Harness](https://www.npmjs.com/package/@deepseek-ai/dsh).
 
 Sign in to GitHub via the device-code flow, store the Copilot grant through the harness credential
 records, and register a **github-copilot** LLM route backed by pi-ai's Copilot model catalog — all on
 official dsh seams, with no third-party OAuth base required.
 
-> **Status: 0.3.0** — built and verified against dsh 0.2.0-rc.2 / pi-ai 0.87.1 (typecheck/build/14
-> tests green, including a compose-level catalog-resolution regression for the `modelErrors`
-> contract). Peer ranges `>=0.1.5-rc.1 <0.3.0` cover both the 0.1.x and the 0.2.x host lines;
-> `npm run verify:gate` recomputes the host compatibility gate.
-> 中文版见 [README.zh-CN.md](README.zh-CN.md).
+> **Status: 0.3.1** — built and verified against dsh 0.2.0-rc.2 / pi-ai 0.87.1 (typecheck/build/tests
+> green, including a compose-level catalog-resolution regression for the `modelErrors` contract).
+> Peer ranges `>=0.1.5-rc.1 <0.3.0-0` cover the 0.1.x and 0.2.x host lines — **`0.2.1-alpha`
+> included** — and refuse the whole `0.3.0` prerelease line. `npm run verify:gate` recomputes that
+> gate and also asserts the `0.3.0` line stays refused.
 
 ## Why not the community dsh-oauth base
 
@@ -152,6 +154,14 @@ node scripts/verify-vision.mjs   # opencode-go vision route probe (REASONING_EFF
 ```
 
 ## Compatibility note
+
+**Peer ranges and the host gate.** dsh skips a whole bundle when any peer named `@deepseek-ai/dsh`
+or prefixed `@deepseek-ai/dsh-` falls outside its range, evaluated with
+`semver.satisfies(host, range, { includePrerelease: true })`. That flag matters for the **upper**
+bound: `0.3.0-rc.1` is *less than* `0.3.0`, so a range ending in `<0.3.0` happily admits the entire
+0.3.0 prerelease line — a dsh that has never been tested against. The ranges here therefore end in
+**`<0.3.0-0`**, the bound that actually excludes it, and `npm run verify:gate` asserts both
+directions (the supported lines pass, the 0.3.0 line is refused).
 
 The model route always activates; login tools need the `authorization` service mounted and the
 opt-in flag. The shipped dsh-base profile does not mount that service by default — the profile
